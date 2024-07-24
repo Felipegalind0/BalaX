@@ -9,7 +9,7 @@
 #include <MadgwickAHRS.h>
 #include "speaker.h"
 
-#include "lfs.h"
+//#include "lfs.h"
 
 // Calibration status for each side
 // enum Side { ROBOT_TOP_SIDE, BOTTOM, LEFT, RIGHT, ROBOT_FRONT_SIDE, ROBOT_BACK_SIDE, NONE };

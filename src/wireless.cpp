@@ -520,13 +520,21 @@ void exec_Wireless_Setup( void * pvParameters) {
     WiFi.mode(WIFI_AP_STA); 
     WiFi.begin(ssid, password);
     if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-        Serial.printf("WiFi Failed!\n");
-        return;
+        Serial.printf("The Network '%s' is not in range, restarting WiFi in AP only mode\n", ssid);
+        WiFi.mode(WIFI_AP);
+        //return;
     }
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
+    else{
+      //Serial.print("Successfully connected to '%s', IP: '%s'\n", ssid, WiFi.localIP().toString().c_str());
+    }
+
     // WebSerial is accessible at "<IP Address>/webserial" in browser
+
+
     WiFi.softAP(AP_ssid);
+    // Serial.print("Started AP '%s', IP: '%s'\n", AP_ssid, "NO WORKO");
+
+
     //WiFi.softAP(AP_ssid, AP_password);
 
     //WebSerial.begin(&server);
