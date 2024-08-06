@@ -1,4 +1,0 @@
-const char* ssid = "W6SLN"; // Your WiFi SSID
-const char* password = "safasdfs"; // Your WiFi Password
-const char* AP_ssid = "MARIN4-robot"; // Your WiFi SSID
-const char* AP_password = "MARIN1010"; // Your WiFi Password
