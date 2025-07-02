@@ -7,7 +7,7 @@
 #include "variables.h"
 #include "LCD.h"
 #include "COMS.h"
-#include "Wireless.h"
+#include "wireless.h"
 
 void RealTcode(void *pvParameters);
 

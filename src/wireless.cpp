@@ -1,4 +1,7 @@
 // wireless.cpp
+
+#define WIFI_CHANNEL 1
+
 #include <Arduino.h>
 
 #include "creds.h"
@@ -27,6 +30,10 @@
 typedef struct struct_message_r {
     byte i;
     char a[msg_str_len];
+    // An explicit conversion function
+    String toString() const {
+      return "i=" + String(i) + ", a=" + String(a);
+    } 
 } struct_message_r;
 
 
@@ -35,6 +42,10 @@ typedef struct struct_message_s {
     byte i;
     char a[msg_str_len];
     //float robot_pitch;
+    // An explicit conversion function
+    String toString() const {
+      return "i=" + String(i) + ", a=" + String(a);
+    }
 } struct_message_s;
 
 
@@ -186,12 +197,14 @@ float JoYC_Y_Sensitivity = -0.1;
 void processCharArray() {
 
   if(remote_msg == "ARM") {
+    Serial.println("remote_msg == ARM");
     abortWasHandled = true;
     isArmed = true;
     return;
 
   }
   else if(remote_msg == "DISARM") {
+    Serial.println("remote_msg == DISARM");
     isArmed = false;
     abortWasHandled = true;
     return;
@@ -244,15 +257,9 @@ char buffer[6]; // Buffer to hold the formatted string, including the sign, thre
 
 String robot_pitch_str = "";
 
-void sendData() {
-  RED_LED(1);
-  // Structure and data to send as before
-  struct_message_r myDataR;
 
-  // Create a string formatted as (+/-)XX(+/-)YY
-
+String get_response_msg() {
   String message = "";
-
   if (remote_msg == "ARM") {
     message = "ARMED";
   }
@@ -262,8 +269,6 @@ void sendData() {
   else if (remote_msg == "REQUEST_TAKEOFF") {
     message = "TAKING_OFF";
   }
-
-
   else {
 
 
@@ -368,33 +373,59 @@ void sendData() {
 
   }
 
-  
+  return message;
+}
 
-  // robot_pitch_str = " " + String(int(varAng));
-  //robot_pitch_str = " " + buffer;
-  //myDataS.robot_pitch = varAng;
-  //robot_pitch_str = sscanf(robot_pitch_str.c_str(), " %hhx");
-  //strcpy(myDataR.a, (if (x < 0) ? "" : "+") + String(x) + (if (y < 0) ? "" : "+") + String(y));
 
-  // Move message to myDataR
-  message.toCharArray(myDataS.a, msg_str_len);
-  myDataS.i = i_msg;
+byte send_error_count = 0;
+byte upload_link_quality = 100;
+void sendData() {
 
-  // Send message via ESP-NOW
-  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myDataS, sizeof(myDataS));
-  
-  if (result == ESP_OK) {
-    #if PRINT_SENT
-    Serial.print("Sent: " + String(myDataS.a));
-    #endif
+  if (true){
+    RED_LED(1);
+    // Structure and data to send as before
+    //struct_message_r myDataR;
+
+
+    String message = get_response_msg();
+
+    // robot_pitch_str = " " + String(int(varAng));
+    //robot_pitch_str = " " + buffer;
+    //myDataS.robot_pitch = varAng;
+    //robot_pitch_str = sscanf(robot_pitch_str.c_str(), " %hhx");
+    //strcpy(myDataR.a, (if (x < 0) ? "" : "+") + String(x) + (if (y < 0) ? "" : "+") + String(y));
+
+    // Move message to myDataR
+    message.toCharArray(myDataS.a, msg_str_len);
+    myDataS.i = i_msg;
+
+    // Send message via ESP-NOW
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myDataS, sizeof(myDataS));
+    
+    if (result == ESP_OK) {
+      #if PRINT_SENT
+      Serial.println("Sent: " + myDataS.toString());
+      #endif
+    }
+    else {
+      if (!(i_msg % 11)){
+        // Serial.println("Error sending the data: " + String(result) + ", data: " + myDataS.toString);
+        Serial.println("Error sending the data: " + String(result) + ", data: " + myDataS.toString());
+        
+      }
+      send_error_count++;
+      if (send_error_count > 200) {
+        Serial.println("Cannot send data to remote, tried and failed over 200 times, something is very wrong...");
+        send_error_count = 0;
+        upload_link_quality = 0; // set the upload link quality to 0,
+      }
+      //Serial.print(String(*sender_mac, HEX) + ":" + String(*(sender_mac + 1), HEX) + ":" + String(*(sender_mac + 2), HEX) + ":" + String(*(sender_mac + 3), HEX) + ":" + String(*(sender_mac + 4), HEX) + ":" + String(*(sender_mac + 5), HEX));
+    }
+    RED_LED(0);
+
+    should_reply_to_C_cmd = false; // sets the flag to false, so that we don't send data again until we receive a new command
   }
-  else {
-    Serial.print("Error sending the data: " + String(result) + "myDataR: " + String(myDataR.a));
-    //Serial.print(String(*sender_mac, HEX) + ":" + String(*(sender_mac + 1), HEX) + ":" + String(*(sender_mac + 2), HEX) + ":" + String(*(sender_mac + 3), HEX) + ":" + String(*(sender_mac + 4), HEX) + ":" + String(*(sender_mac + 5), HEX));
-  }
-  RED_LED(0);
-
-  should_reply_to_C_cmd = false;
+  
 }
 
 
@@ -420,7 +451,7 @@ String macToString(const uint8_t* mac) {
 }
 
 # define PRINT_MAC_RECEIVED 0
-# define PRINT_BYTES_RECEIVED 1
+# define PRINT_BYTES_RECEIVED 0
 # define PRINT_CPU_RECIVED 0
 # define PRINT_X_Y 0
 // callback function that will be executed when data is receiveD
@@ -443,9 +474,10 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     // Setup ESPNOW peer
     esp_now_peer_info_t peerInfo;
     memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-    peerInfo.channel = 0;
+    peerInfo.channel = WIFI_CHANNEL;
     peerInfo.encrypt = false;
-
+    peerInfo.ifidx = WIFI_IF_STA; // BAD, causes error 12396
+    //peerInfo.ifidx = WIFI_IF_AP; //works well
 
     // Add peer
     esp_err_t addPeerResult = esp_now_add_peer(&peerInfo);
@@ -496,8 +528,8 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 
   processCharArray(); // Call the function to process the received data
 
-  should_reply_to_C_cmd = true;
-  //sendData(); // Send the processed data back to the sender
+  should_reply_to_C_cmd = true; // sets the flag to true, so that we can send data back to the sender
+  //sendData(); // Send the processed data back to the sender COMMENTED OUT, because we don't want to send data back to the sender right now, instead we set the flag to true, so that the background task can send the data in the background
 
 
 
@@ -531,7 +563,7 @@ void exec_Wireless_Setup( void * pvParameters) {
     // WebSerial is accessible at "<IP Address>/webserial" in browser
 
 
-    WiFi.softAP(AP_ssid);
+    WiFi.softAP(AP_ssid, NULL, WIFI_CHANNEL);
     // Serial.print("Started AP '%s', IP: '%s'\n", AP_ssid, "NO WORKO");
 
 

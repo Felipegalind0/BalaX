@@ -161,5 +161,9 @@ void resetPara();
 
 void update_exec_status(String status);
 
+// PID tuning parameters
+extern double pitch_kp, pitch_ki, pitch_kd;
+extern double yaw_kp, yaw_ki, yaw_kd;
+
 
 #endif // _VARIABLES_H_
