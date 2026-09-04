@@ -1,6 +1,8 @@
 ###### READMEv1.0 <br/> Made with ❤️ by [Felipe Galindo](https://felipegalind0.github.io)
 
+
 # MARIN: BalaC balancing robot (IMU:MPU6886)
+
 
 
 ### Robot Setup instructions:
@@ -16,3 +18,5 @@ completes.
 demo(circle)
 
 #### Based on [https://github.com/m5stack/M5-ProductExampleCodes/blob/master/App/BalaC/Arduino/Balac/Balac.ino](https://github.com/m5stack/M5-ProductExampleCodes/blob/master/App/BalaC/Arduino/Balac/Balac.ino)
+
+uses a JoyC with this firmware as a remote https://github.com/Felipegalind0/JoyX
